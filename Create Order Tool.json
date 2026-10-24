@@ -1,0 +1,450 @@
+{
+  "name": "Create Order Tool",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "customer_name"
+            },
+            {
+              "name": "phone_number"
+            },
+            {
+              "name": "city"
+            },
+            {
+              "name": "full_address"
+            },
+            {
+              "name": "product"
+            }
+          ]
+        }
+      },
+      "id": "0261b392-7cbd-4752-be31-53a6476314b7",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nreturn [{\n  json: {\n    customer_name: item.customer_name || '',\n    phone_number: item.phone_number || '',\n    city: item.city || '',\n    full_address: item.full_address || '',\n    product: item.product || '',\n  }\n}];"
+      },
+      "id": "4554e457-e2d3-4048-852a-4158258af1b9",
+      "name": "Store Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "384ee882-09e8-4ca3-9592-aac33b8fcc90",
+      "name": "Merge Order Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "options": {
+          "outputFormatting": {
+            "values": {
+              "general": "UNFORMATTED_VALUE",
+              "date": "FORMATTED_STRING"
+            }
+          }
+        }
+      },
+      "id": "508cc6b7-8c7b-454a-8ac2-00556359540e",
+      "name": "Get Last ID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allRows = $input.all();\nlet lastId = 0;\nfor (const row of allRows) {\n  const id = parseInt(row.json['Order ID'], 10);\n  if (!isNaN(id) && id > lastId) {\n    lastId = id;\n  }\n}\nconst nextId = (lastId + 1).toString();\nreturn [{ json: { last_order_id: lastId.toString(), next_order_id: nextId } }];"
+      },
+      "id": "195864af-0b44-47aa-86e8-dba721af5cd5",
+      "name": "Compute Next Order ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "order_id",
+              "name": "Order ID",
+              "value": "={{ $json.next_order_id }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "Timestamp",
+              "value": "={{ $now.setZone(\"Asia/Karachi\").toFormat(\"dd/MM/yyyy HH:mm:ss\") }}",
+              "type": "string"
+            },
+            {
+              "id": "customer_name",
+              "name": "Customer Name",
+              "value": "={{ $json.customer_name }}",
+              "type": "string"
+            },
+            {
+              "id": "phone_number",
+              "name": "Phone Number",
+              "value": "={{ $json.phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "city",
+              "name": "City",
+              "value": "={{ $json.city }}",
+              "type": "string"
+            },
+            {
+              "id": "full_address",
+              "name": "Full Address",
+              "value": "={{ $json.full_address }}",
+              "type": "string"
+            },
+            {
+              "id": "product_details",
+              "name": "Product/Order Details",
+              "value": "={{ $json.product }}",
+              "type": "string"
+            },
+            {
+              "id": "order_status",
+              "name": "Order Status",
+              "value": "Pending",
+              "type": "string"
+            },
+            {
+              "id": "notes",
+              "name": "Notes",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1b1f1cfd-4c77-47dc-b870-033bd43316b4",
+      "name": "Map Order Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $json[\"Order ID\"] }}",
+            "Timestamp": "={{ $json[\"Timestamp\"] }}",
+            "Customer Name": "={{ $json[\"Customer Name\"] }}",
+            "Phone Number": "={{ $json[\"Phone Number\"] }}",
+            "City": "={{ $json[\"City\"] }}",
+            "Full Address": "={{ $json[\"Full Address\"] }}",
+            "Product/Order Details": "={{ $json[\"Product/Order Details\"] }}",
+            "Order Status": "={{ $json[\"Order Status\"] }}",
+            "Notes": "={{ $json[\"Notes\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Full Address",
+              "displayName": "Full Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product/Order Details",
+              "displayName": "Product/Order Details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Order Status",
+              "displayName": "Order Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "aec8fd4d-18ad-4754-9f7d-62967f11e969",
+      "name": "Append Row in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "order_id",
+              "name": "order_id",
+              "value": "={{ $(\"Map Order Fields\").item.json[\"Order ID\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "customer_name",
+              "name": "customer_name",
+              "value": "={{ $(\"Map Order Fields\").item.json[\"Customer Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "product",
+              "name": "product",
+              "value": "={{ $(\"Map Order Fields\").item.json[\"Product/Order Details\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "order_status",
+              "name": "order_status",
+              "value": "Pending",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ \"Order #\" + $(\"Map Order Fields\").item.json[\"Order ID\"] + \" has been created successfully for \" + $(\"Map Order Fields\").item.json[\"Customer Name\"] + \".\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "879a196d-1dc9-4084-bb1e-d4809f79b148",
+      "name": "Confirmation Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1568,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Store Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Inputs": {
+      "main": [
+        [
+          {
+            "node": "Merge Order Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Last ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Order Data": {
+      "main": [
+        [
+          {
+            "node": "Map Order Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Last ID": {
+      "main": [
+        [
+          {
+            "node": "Compute Next Order ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Next Order ID": {
+      "main": [
+        [
+          {
+            "node": "Merge Order Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Map Order Fields": {
+      "main": [
+        [
+          {
+            "node": "Append Row in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Row in Sheet": {
+      "main": [
+        [
+          {
+            "node": "Confirmation Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": []
+}

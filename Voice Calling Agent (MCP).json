@@ -1,0 +1,282 @@
+{
+  "name": "Voice Calling Agent (MCP)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "voice-calling-agent",
+        "instructions": "You are a voice calling assistant for a flower ordering business.\nYou have access to three tools:\n1. supabase_data_fetching — search product catalog, prices, availability, and orders.\n2. create_order — create a new customer order in Google Sheets. Always collect customer_name, phone_number, city, full_address, and product before calling this tool.\n3. update_order — update an existing order. Always require order_id. Only update the fields the customer explicitly asked to change.\nNever invent product information, prices, or order IDs. Always retrieve real data before responding."
+      },
+      "id": "7658d32c-0ca8-443e-83e6-ea3147e1a17c",
+      "name": "MCP Server Trigger",
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Search the product database for product information, availability, prices, product catalog, order status, or finding an order by phone number or order ID. Use this tool whenever the customer asks about products, prices, availability, product options, order status, or wants to find an existing order.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_SUPABASE_DATA_FETCHING_WORKFLOW",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query_type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query_type', 'Type of information being requested, such as product, price, availability, catalog, order_status, phone_number, or order_id.') }}",
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', 'The exact product name, customer phone number, order ID, or search query.') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query_type",
+              "displayName": "query_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "0658ae43-c5c3-4a00-87db-36c6e7936fc0",
+      "name": "supabase_data_fetching",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Creates a new customer order in Google Sheets. REQUIRED: customer_name, phone_number, city, full_address, and product/order details. Use this tool only after collecting and confirming all required customer information. Do not create an order with missing required information.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_CREATE_ORDER_WORKFLOW",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('customer_name', \"Customer's full name.\") }}",
+            "phone_number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('phone_number', \"Customer's phone number.\") }}",
+            "city": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('city', \"Customer's city.\") }}",
+            "full_address": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('full_address', \"Customer's complete delivery address.\") }}",
+            "product": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('product', 'Product or complete order details.') }}"
+          },
+          "schema": [
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "full_address",
+              "displayName": "full_address",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "product",
+              "displayName": "product",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        }
+      },
+      "id": "1727374c-af72-4d4a-9dca-19c61fe0b6fe",
+      "name": "create_order",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Updates an existing order. REQUIRED: order_id. OPTIONAL: full_address, product, notes, city, status, phone_number. Use status 'Cancelled' to cancel an order. Only provide the fields that need to be changed. Never overwrite fields that the customer did not ask to change.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_UPDATE_ORDER_WORKFLOW",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_id', 'The existing Order ID.') }}",
+            "full_address": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('full_address', 'New complete delivery address.') }}",
+            "product": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('product', 'New product or order details.') }}",
+            "notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('notes', 'New order notes.') }}",
+            "city": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('city', 'New city.') }}",
+            "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('status', 'New order status. Use Cancelled when cancelling an order.') }}",
+            "phone_number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('phone_number', 'New customer phone number.') }}"
+          },
+          "schema": [
+            {
+              "id": "order_id",
+              "displayName": "order_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "full_address",
+              "displayName": "full_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "product",
+              "displayName": "product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        }
+      },
+      "id": "f79b688f-d143-47bd-af5e-8725bab99169",
+      "name": "update_order",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        224
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "supabase_data_fetching": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": []
+}

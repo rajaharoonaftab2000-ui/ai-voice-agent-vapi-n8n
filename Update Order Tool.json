@@ -1,0 +1,389 @@
+{
+  "name": "Update Order Tool",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "order_id"
+            },
+            {
+              "name": "full_address"
+            },
+            {
+              "name": "product"
+            },
+            {
+              "name": "notes"
+            },
+            {
+              "name": "city"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "phone_number"
+            }
+          ]
+        }
+      },
+      "id": "a2cb13ba-751d-43de-82b0-65c92de9f5e7",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nreturn [{\n  json: {\n    order_id: item.order_id || '',\n    full_address: item.full_address || null,\n    product: item.product || null,\n    notes: item.notes || null,\n    city: item.city || null,\n    status: item.status || null,\n    phone_number: item.phone_number || null,\n  }\n}];"
+      },
+      "id": "f6109150-e1b0-4be0-a19a-0d23a6e0380e",
+      "name": "Store Update Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Order ID",
+              "lookupValue": "={{ $(\"Store Update Inputs\").item.json.order_id }}"
+            }
+          ]
+        },
+        "options": {
+          "outputFormatting": {
+            "values": {
+              "general": "UNFORMATTED_VALUE",
+              "date": "FORMATTED_STRING"
+            }
+          }
+        }
+      },
+      "id": "4da656e4-529f-49a9-8626-c0fad3796196",
+      "name": "Get Row by Order ID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "8035bb01-5f0f-4bfa-9472-d9fe68886cad",
+      "name": "Merge Existing with Updates",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const existing = $input.first().json;\nconst updates = $(\"Store Update Inputs\").first().json;\n\n// Start from existing row\nconst merged = {\n  'Order ID': existing['Order ID'],\n  'Timestamp': existing['Timestamp'],\n  'Customer Name': existing['Customer Name'],\n  'Phone Number': existing['Phone Number'],\n  'City': existing['City'],\n  'Full Address': existing['Full Address'],\n  'Product/Order Details': existing['Product/Order Details'],\n  'Order Status': existing['Order Status'],\n  'Notes': existing['Notes'],\n};\n\n// Track which fields were updated\nconst updatedFields = [];\n\n// Only overwrite fields that are explicitly provided (non-null, non-empty)\nif (updates.full_address !== null && updates.full_address !== '') {\n  merged['Full Address'] = updates.full_address;\n  updatedFields.push('Full Address');\n}\nif (updates.product !== null && updates.product !== '') {\n  merged['Product/Order Details'] = updates.product;\n  updatedFields.push('Product/Order Details');\n}\nif (updates.notes !== null && updates.notes !== '') {\n  merged['Notes'] = updates.notes;\n  updatedFields.push('Notes');\n}\nif (updates.city !== null && updates.city !== '') {\n  merged['City'] = updates.city;\n  updatedFields.push('City');\n}\nif (updates.status !== null && updates.status !== '') {\n  merged['Order Status'] = updates.status;\n  updatedFields.push('Order Status');\n}\nif (updates.phone_number !== null && updates.phone_number !== '') {\n  merged['Phone Number'] = updates.phone_number;\n  updatedFields.push('Phone Number');\n}\n\nmerged._updatedFields = updatedFields;\n\nreturn [{ json: merged }];"
+      },
+      "id": "c5149ae0-ed1a-49ca-be45-6d8b9cd5ddbe",
+      "name": "Apply Only Provided Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $json[\"Order ID\"] }}",
+            "Timestamp": "={{ $json[\"Timestamp\"] }}",
+            "Customer Name": "={{ $json[\"Customer Name\"] }}",
+            "Phone Number": "={{ $json[\"Phone Number\"] }}",
+            "City": "={{ $json[\"City\"] }}",
+            "Full Address": "={{ $json[\"Full Address\"] }}",
+            "Product/Order Details": "={{ $json[\"Product/Order Details\"] }}",
+            "Order Status": "={{ $json[\"Order Status\"] }}",
+            "Notes": "={{ $json[\"Notes\"] }}"
+          },
+          "matchingColumns": [
+            "Order ID"
+          ],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Full Address",
+              "displayName": "Full Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product/Order Details",
+              "displayName": "Product/Order Details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Order Status",
+              "displayName": "Order Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "7195de38-2cfb-4d9b-b35b-0bf6b3347feb",
+      "name": "Update Row in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "order_id",
+              "name": "order_id",
+              "value": "={{ $(\"Apply Only Provided Updates\").item.json[\"Order ID\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "updated_fields",
+              "name": "updated_fields",
+              "value": "={{ $(\"Apply Only Provided Updates\").item.json._updatedFields }}",
+              "type": "array"
+            },
+            {
+              "id": "order_status",
+              "name": "order_status",
+              "value": "={{ $(\"Apply Only Provided Updates\").item.json[\"Order Status\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ \"Order #\" + $(\"Apply Only Provided Updates\").item.json[\"Order ID\"] + \" has been updated successfully. Updated fields: \" + $(\"Apply Only Provided Updates\").item.json._updatedFields.join(\", \") + \".\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "969381ec-610a-4568-97df-29f7d0ed8ebb",
+      "name": "Update Confirmation Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Store Update Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Update Inputs": {
+      "main": [
+        [
+          {
+            "node": "Get Row by Order ID",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Existing with Updates",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Row by Order ID": {
+      "main": [
+        [
+          {
+            "node": "Merge Existing with Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Existing with Updates": {
+      "main": [
+        [
+          {
+            "node": "Apply Only Provided Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Only Provided Updates": {
+      "main": [
+        [
+          {
+            "node": "Update Row in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row in Sheet": {
+      "main": [
+        [
+          {
+            "node": "Update Confirmation Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": []
+}
